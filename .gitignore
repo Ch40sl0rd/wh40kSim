@@ -1,0 +1,26 @@
+#Compiled source code
+*.o
+*.exe
+
+#Latex code
+*.aux
+*.out
+*.bcf
+*.lof
+*.lot
+*.run.xml
+*.toc
+
+#Packages
+*.zip
+*.gz
+*.7z
+
+#logs
+*.log
+*.gz
+
+#data files
+*.mp4
+
+.vscode
