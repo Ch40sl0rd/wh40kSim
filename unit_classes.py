@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 @dataclass
 class attacker :
     ws: int
@@ -19,6 +18,7 @@ class target :
 
 @dataclass
 class weapon :
+    num_shots: int
     strength: int
     ap : int
     dmg : float
