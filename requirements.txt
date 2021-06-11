@@ -3,22 +3,22 @@ certifi==2020.12.5
 colorama==0.4.4
 cycler==0.10.0
 isort==5.6.4
-kiwisolver @ file:///C:/ci/kiwisolver_1612282606037/work
+kiwisolver @ file:///D:/bld/kiwisolver_1610099948875/work
 lazy-object-proxy==1.4.3
-matplotlib @ file:///C:/ci/matplotlib-suite_1613408055530/work
+matplotlib @ file:///D:/bld/matplotlib-suite_1611858820206/work
 mccabe==0.6.1
 mkl-fft==1.3.0
 mkl-random @ file:///C:/ci/mkl_random_1618854156666/work
 mkl-service==2.3.0
 numpy @ file:///C:/ci/numpy_and_numpy_base_1620833114945/work
-olefile==0.46
+olefile @ file:///home/conda/feedstock_root/build_artifacts/olefile_1602866521163/work
 Pillow @ file:///C:/ci/pillow_1617386341487/work
 pylint==2.6.0
-pyparsing @ file:///home/linux1/recipes/ci/pyparsing_1610983426697/work
-python-dateutil @ file:///home/ktietz/src/ci/python-dateutil_1611928101742/work
+pyparsing==2.4.7
+python-dateutil==2.8.1
 sip==4.19.13
 six==1.15.0
 toml==0.10.1
-tornado @ file:///C:/ci/tornado_1606942392901/work
+tornado @ file:///D:/bld/tornado_1610094858390/work
 wincertstore==0.2
 wrapt==1.12.1
