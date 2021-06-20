@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 @dataclass(frozen=True)
-class attacker :
+class Attacker :
     name: str
     ws: int
     ppm : float
@@ -10,7 +10,7 @@ class attacker :
     no_models : int = 1
 
 @dataclass(frozen=True)
-class target :
+class Target :
     name: str
     toughness: int
     armor: int
@@ -21,7 +21,7 @@ class target :
     invun_save: int = 0
 
 @dataclass(frozen=True)
-class weapon :
+class Weapon :
     name: str
     num_shots: int
     strength: int
