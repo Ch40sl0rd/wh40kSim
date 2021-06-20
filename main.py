@@ -14,7 +14,6 @@ def init_argparse()->argparse.ArgumentParser:
     parser.add_argument('-o','--output', default='damage_output.txt', help='File for calculated damage output')
     return parser
 
-
 def main():
     parser = init_argparse()
     dict_args = vars(parser.parse_args())
