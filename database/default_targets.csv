@@ -1,0 +1,7 @@
+name,toughness,armor,hp,unit_type,hitmod,woundmod,invun_save
+Guardsmen, 3, 5, 1,,,,
+Ork Boy, 4, 6, 1,,,,
+Intercessor, 4, 3, 2,,,,
+Gravis Armour, 5, 3, 3,,,,
+Rhino, 7, 3, 11, vehicle,,,
+Knight, 8, 3, 24, vehicle,,,5

@@ -1,2 +1,2 @@
 name,toughness,armor,hp,unit_type,hitmod,woundmod,invun_save
-rhino, 7, 3, 11, vehicle,,,
+Guardsmen, 3, 5, 1,,,,

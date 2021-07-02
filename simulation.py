@@ -1,8 +1,11 @@
 import random
+
+from pandas.core.indexes.base import InvalidIndexError
 import unit_classes
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import scipy.odr as odr
 
 class Simulation():
     def __init__(self, attacker, target, weapon):
@@ -31,14 +34,26 @@ class Simulation():
         return cls(attacker, target, weapon)
     
     @classmethod
-    def from_csv_datafiles(cls, at_file : str, tg_file : str, wp_file : str):
+    def from_csv_datafiles(cls, at_file : str, tg_file : str, wp_file : str, singleUnitInFile:bool = True):
         default_attacker = {'hitmod':0, 'woundmod':0, 'unit_type':'infantry', 'no_models':1}
         default_target = {'unit_type':'infantry', 'hitmod':0, 'woundmod':0, 'invun_save':0}
         default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
-        attacker = unit_classes.Attacker(*pd.read_csv(at_file, skipinitialspace=True).iloc[0].fillna(value=default_attacker))
-        target = unit_classes.Target(*pd.read_csv(tg_file, skipinitialspace=True).iloc[0].fillna(value=default_target))
-        weapon = unit_classes.Weapon(*pd.read_csv(wp_file, skipinitialspace=True).iloc[0].fillna(value=default_weapon))
-        return cls(attacker, target, weapon)
+        
+        if(singleUnitInFile):
+            attacker = unit_classes.Attacker(*pd.read_csv(at_file, skipinitialspace=True).iloc[0].fillna(value=default_attacker))
+            target = unit_classes.Target(*pd.read_csv(tg_file, skipinitialspace=True).iloc[0].fillna(value=default_target))
+            weapon = unit_classes.Weapon(*pd.read_csv(wp_file, skipinitialspace=True).iloc[0].fillna(value=default_weapon))
+            return cls(attacker, target, weapon)
+        
+        attackers = pd.read_csv(at_file, skipinitialspace=True)
+        targets = pd.read_csv(tg_file, skipinitialspace=True)
+        weapons = pd.read_csv(wp_file, skipinitialspace=True)
+        
+        print(targets)
+        
+        num_attackers = attackers.shape[0]
+        num_targets = targets.shape[0]
+        num_weapons = weapons.shape[0]
 
     @staticmethod
     def __restrict_value(value, min, max)->float:
@@ -54,6 +69,26 @@ class Simulation():
             return min
         else:
             return value
+        
+    @staticmethod
+    def gauss(A, x):
+        a = A[0]
+        mu = A[1]
+        sigma = A[2]
+        return np.exp(-(x-mu)**2/(2.0*sigma**2))/np.sqrt(2.0*np.pi*sigma**2)*a
+    
+    @staticmethod
+    def gauss2(A,x):
+        a1 = A[:3]
+        a2 = A[3:]
+        return Simulation.gauss(a1,x)*Simulation.gauss(a2,x)
+    
+    def __num_shots(self,randi)->int:
+        if(self.weapon.shot_type=='flat'):
+            num_shots = self.weapon.num_shots + self.weapon.shot_mod
+        else:
+            num_shots = randi.randint(1,self.weapon.num_shots) + self.weapon.shot_mod
+        return num_shots
     
     def __hitroll(self, randi)->bool:
         hit_roll = randi.randint(1,6)
@@ -85,13 +120,17 @@ class Simulation():
 
     def __armorsave(self, randi)->bool:
         random.Random()
-        #check if armor can save the attack
-        if(self.target.armor - self.weapon.ap < 7):
-            #print('armor may save')
+        #check if armor can save the attack or invun save exists
+        if(self.target.armor - self.weapon.ap < 7 or self.target.invun_save!=0):
             save_roll = randi.randint(1,6)
-            save_roll = self.__restrict_value(save_roll + self.weapon.ap, 1, 6)
-            if(save_roll > self.target.armor):
+            if(self.target.armor - self.weapon.ap > self.target.invun_save and self.target.invun_save != 0):
+                save = self.target.invun_save
+            else:
+                save = self.target.armor
+                save_roll = self.__restrict_value(save_roll + self.weapon.ap, 1, 6)
+            if(save_roll > save):
                 return False
+            
         return True
 
     def __weapon_dmg(self, randi)->float:
@@ -104,14 +143,13 @@ class Simulation():
             raise ValueError
         return dmg
     
-    def __attack_sequence(self)->float:
+    def __attack_sequence(self, randi)->float:
         '''This function simulates one attack by the attacker
             against the target using the given weapon
             
             Return
             float damage dealt with this attack
         '''
-        randi = random.Random()
         dmg = 0
         #check if attack hit target
         if(not self.__hitroll(randi)):
@@ -145,13 +183,16 @@ class Simulation():
         '''
         remain_hp = self.target.hp
         models_killed = 0
-        for _ in range(self.attacker.no_models*self.weapon.num_shots):
-            dmg = self.__attack_sequence()
-            if(dmg >= remain_hp):
-                models_killed += 1
-                remain_hp = self.target.hp
-            else:
-                remain_hp -= dmg
+        randi = random.Random()
+
+        for _ in range(self.attacker.no_models):
+            for _ in range(self.__num_shots(randi)):
+                dmg = self.__attack_sequence(randi)
+                if(dmg >= remain_hp):
+                    models_killed += 1
+                    remain_hp = self.target.hp
+                else:
+                    remain_hp -= dmg
         return models_killed + (self.target.hp-remain_hp)/float(self.target.hp)        
         
     def unit_shooting_vehicle(self)->float:
@@ -163,11 +204,13 @@ class Simulation():
             float: total damage dealt
         '''
         dmg = 0
-        for _ in range(self.attacker.no_models*self.weapon.num_shots):
-            dmg += self.__attack_sequence()
+        randi = random.Random()
+        for _ in range(self.attacker.no_models):
+            for _ in range(self.__num_shots(randi)):
+                dmg += self.__attack_sequence(randi)
         return dmg
     
-    def simulate_attack_sequence(self, no_runs : int):
+    def simulate_attack_sequence(self, no_runs : int)->np.ndarray:
         if(self.target.unit_type == 'infantry'):
             func = self.unit_shooting_infantry
         elif(self.target.unit_type == 'vehicle'):
@@ -180,31 +223,64 @@ class Simulation():
             results[i] = func()
         return results
     
-    def visualize_data(self, data):
+    def visualize_data(self, data, normalized:bool=False)->plt.Figure:
         if(self.target.unit_type=='infantry'):
-            bins = np.arange(-1/(2*self.target.hp), self.attacker.no_models*self.weapon.num_shots/self.target.hp+1, 1/float(self.target.hp))
+            max_dmg = int(np.max(data)+1)
+            bins = np.arange(-1/(2*self.target.hp), max_dmg, 1/float(self.target.hp))
             xlabel = f'Number of {self.target.name} models killed'
         else:
-            bins = np.arange(-0.5, self.attacker.no_models*self.weapon.num_shots*self.weapon.dmg)
+            max_dmg = int(np.max(data)+1)
+            bins = np.arange(-0.5, max_dmg)
             xlabel = f'Damage infliceted to {self.target.name}'
         
+        if not normalized:
+            ylabel = 'Number of events'
+        else:
+            ylabel = 'Relative probability'
         fig = plt.figure(1,(8,6))
         ax1 = fig.add_subplot(111)    
-        ax1.hist(data, bins=bins, density=True)
-        ax1.set_ylabel('Number of events')
+        ax1.hist(data, bins=bins, density=normalized, label='simulated damage')
+        ax1.set_ylabel(ylabel)
         ax1.set_xlabel(xlabel)
         ax1.set_title(f'{self.attacker.name} attacking {self.target.name} with {self.weapon.name}')
         return fig
     
-    def analyze_data(self, data):
+    def analyze_data(self, data, normalized:bool = False):
+        max_dmg = int(np.max(data)+1)
         if(self.target.unit_type=='infantry'):
-            bins = np.arange(-1/(2*self.target.hp), self.attacker.no_models*self.weapon.num_shots/self.target.hp+1, 1/float(self.target.hp))
+            bins = np.arange(-1/(2*self.target.hp), max_dmg, 1/float(self.target.hp))
         else:
-            bins = np.arange(-0.5, self.attacker.no_models*self.weapon.num_shots*self.weapon.dmg)
+            bins = np.arange(-0.5, max_dmg+0.5)
             
-        hist, bins = np.histogram(data, bins=bins, density=True)
+        hist, bins = np.histogram(data, bins=bins, density=normalized)
         dmg_points = [bins[i]-(bins[i]-bins[i-1])/2.0 for i in range(1,len(bins))]
+        yerr = np.sqrt(hist)
+        if(self.target.unit_type=='infantry'):
+            xerr = np.ones(len(dmg_points))*1.0/(np.sqrt(12.0)*self.target.hp)
+        else:
+            xerr = np.ones(len(dmg_points))*1.0/np.sqrt(12.0)
+            
+        gaussf = odr.Model(self.gauss)
+        yerr = np.array([x if x !=0 else 2.0 for x in yerr])
+        
+        dataODR = odr.RealData(dmg_points, y=hist, sx=xerr, sy=yerr)
+        myodr = odr.ODR(dataODR, gaussf, beta0=[10000.0, 0.5, 1.0])
+        
+        try:
+            output = myodr.run()
+        except RuntimeWarning:
+            print('runtimewarning')
+            gauss_sum = odr.Model(self.gauss2)
+            myodr = odr.ODR(data, gauss_sum, beta0=[100000, 2.0, 1.0, 10000, 2.0, 1.0])
+            output = myodr.run()
+        params, errors = output.beta, output.sd_beta
+        return (params, errors)
     
+    def visualize_fit(self, params, fig:plt.Figure, normalized:bool=False)->plt.Figure:
+        ax = fig.get_axes()[0]
+        x = np.linspace(0.0, int(ax.get_xlim()[1]+1), 100)
+        y = self.gauss(params, x)
+        ax.plot(x,y, ':', label='fit curve')
     
 def main()->None:
    marine = unit_classes.attacker('marine', 3, 20, no_models=5)

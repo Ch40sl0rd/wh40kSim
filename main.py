@@ -14,16 +14,18 @@ def init_argparse()->argparse.ArgumentParser:
     parser.add_argument('-o','--output', default='damage_output.txt', help='File for calculated damage output')
     return parser
 
+
 def main():
     parser = init_argparse()
     dict_args = vars(parser.parse_args())
     
     sim = Simulation.from_csv_datafiles(dict_args['attacker'], dict_args['target'], dict_args['weapon'])
-    print(sim.target.unit_type)
     
     damage = sim.simulate_attack_sequence(dict_args['num_sims'])
     fig = sim.visualize_data(damage)
-    sim.analyze_data(damage)
+    params, errors = sim.analyze_data(damage)
+    sim.visualize_fit(params, fig)
+    fig.legend()
     plt.show()
 
 if __name__ == '__main__':

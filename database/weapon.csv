@@ -1,2 +1,2 @@
 name,num_shots,strength,ap,dmg,shot_type,shot_mod,dmg_type,dmg_mod
-bolt_rifle, 2, 4, -1, 1,,,, 
+Heavy Flamer, 6, 5, -1, 1,random,,, 
