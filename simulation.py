@@ -8,7 +8,7 @@ import pandas as pd
 import scipy.odr as odr
 
 class Simulation():
-    def __init__(self, attacker, target, weapon):
+    def __init__(self, attacker, target, weapon, num_runs:int = 10000):
         if (isinstance(attacker, unit_classes.Attacker)==False):
             raise TypeError
         if(isinstance(target, unit_classes.Target)==False):
@@ -18,42 +18,33 @@ class Simulation():
         self.attacker = attacker
         self.target = target
         self.weapon = weapon
+        self.num_runs = num_runs
         
     def __repr__(self):
         return f'Simulation(attacker={self.attacker.name}, target={self.target.name}, weapon={self.weapon.name})'
      
     
     @classmethod
-    def from_dataframes(cls, at_frame, tg_frame, wp_frame):
+    def from_dataframes(cls, at_frame, tg_frame, wp_frame, n:int = 10000):
         default_attacker = {'hitmod':0, 'woundmod':0, 'unit_type':'infantry', 'no_models':1}
         default_target = {'unit_type':'infantry', 'hitmod':0, 'woundmod':0, 'invun_save':0}
         default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
         attacker = unit_classes.Attacker(*at_frame.fillna(value=default_attacker))
         target = unit_classes.Target(*tg_frame.fillna(value=default_target))
         weapon = unit_classes.Weapon(*wp_frame.fillna(value=default_weapon))
-        return cls(attacker, target, weapon)
+        return cls(attacker, target, weapon, n)
     
     @classmethod
-    def from_csv_datafiles(cls, at_file : str, tg_file : str, wp_file : str, singleUnitInFile:bool = True):
+    def from_csv_datafiles(cls, at_file : str, tg_file : str, wp_file : str, n:int = 10000):
         default_attacker = {'hitmod':0, 'woundmod':0, 'unit_type':'infantry', 'no_models':1}
         default_target = {'unit_type':'infantry', 'hitmod':0, 'woundmod':0, 'invun_save':0}
         default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
         
-        if(singleUnitInFile):
-            attacker = unit_classes.Attacker(*pd.read_csv(at_file, skipinitialspace=True).iloc[0].fillna(value=default_attacker))
-            target = unit_classes.Target(*pd.read_csv(tg_file, skipinitialspace=True).iloc[0].fillna(value=default_target))
-            weapon = unit_classes.Weapon(*pd.read_csv(wp_file, skipinitialspace=True).iloc[0].fillna(value=default_weapon))
-            return cls(attacker, target, weapon)
+        attacker = unit_classes.Attacker(*pd.read_csv(at_file, skipinitialspace=True).iloc[0].fillna(value=default_attacker))
+        target = unit_classes.Target(*pd.read_csv(tg_file, skipinitialspace=True).iloc[0].fillna(value=default_target))
+        weapon = unit_classes.Weapon(*pd.read_csv(wp_file, skipinitialspace=True).iloc[0].fillna(value=default_weapon))
+        return cls(attacker, target, weapon, n)
         
-        attackers = pd.read_csv(at_file, skipinitialspace=True)
-        targets = pd.read_csv(tg_file, skipinitialspace=True)
-        weapons = pd.read_csv(wp_file, skipinitialspace=True)
-        
-        print(targets)
-        
-        num_attackers = attackers.shape[0]
-        num_targets = targets.shape[0]
-        num_weapons = weapons.shape[0]
 
     @staticmethod
     def __restrict_value(value, min, max)->float:
@@ -78,10 +69,10 @@ class Simulation():
         return np.exp(-(x-mu)**2/(2.0*sigma**2))/np.sqrt(2.0*np.pi*sigma**2)*a
     
     @staticmethod
-    def gauss2(A,x):
-        a1 = A[:3]
-        a2 = A[3:]
-        return Simulation.gauss(a1,x)*Simulation.gauss(a2,x)
+    def gauss_norm(A, x):
+        mu = A[0]
+        sigma = A[1]
+        return np.exp(-(x-mu)**2/(2*sigma**2))/(np.sqrt(2*np.pi)*sigma)
     
     def __num_shots(self,randi)->int:
         if(self.weapon.shot_type=='flat'):
@@ -210,7 +201,7 @@ class Simulation():
                 dmg += self.__attack_sequence(randi)
         return dmg
     
-    def simulate_attack_sequence(self, no_runs : int)->np.ndarray:
+    def simulate_attack_sequence(self)->np.ndarray:
         if(self.target.unit_type == 'infantry'):
             func = self.unit_shooting_infantry
         elif(self.target.unit_type == 'vehicle'):
@@ -218,8 +209,8 @@ class Simulation():
         else:
             raise TypeError('No valid target unit type selected.')
         
-        results = np.empty(no_runs)
-        for i in range(no_runs):
+        results = np.empty(self.num_runs)
+        for i in range(self.num_runs):
             results[i] = func()
         return results
     
@@ -243,6 +234,7 @@ class Simulation():
         ax1.set_ylabel(ylabel)
         ax1.set_xlabel(xlabel)
         ax1.set_title(f'{self.attacker.name} attacking {self.target.name} with {self.weapon.name}')
+        ax1.legend()
         return fig
     
     def analyze_data(self, data, normalized:bool = False):
@@ -259,28 +251,31 @@ class Simulation():
             xerr = np.ones(len(dmg_points))*1.0/(np.sqrt(12.0)*self.target.hp)
         else:
             xerr = np.ones(len(dmg_points))*1.0/np.sqrt(12.0)
-            
-        gaussf = odr.Model(self.gauss)
+        
+        if normalized:    
+            gaussf = odr.Model(self.gauss_norm)
+            beta = [1.0, 0.5]
+        else:
+            gaussf = odr.Model(self.gauss)
+            beta = [10000, 1.0, 0.5]
+
         yerr = np.array([x if x !=0 else 2.0 for x in yerr])
         
         dataODR = odr.RealData(dmg_points, y=hist, sx=xerr, sy=yerr)
-        myodr = odr.ODR(dataODR, gaussf, beta0=[10000.0, 0.5, 1.0])
-        
-        try:
-            output = myodr.run()
-        except RuntimeWarning:
-            print('runtimewarning')
-            gauss_sum = odr.Model(self.gauss2)
-            myodr = odr.ODR(data, gauss_sum, beta0=[100000, 2.0, 1.0, 10000, 2.0, 1.0])
-            output = myodr.run()
+        myodr = odr.ODR(dataODR, gaussf, beta0=beta)
+        output = myodr.run()
         params, errors = output.beta, output.sd_beta
         return (params, errors)
     
     def visualize_fit(self, params, fig:plt.Figure, normalized:bool=False)->plt.Figure:
         ax = fig.get_axes()[0]
         x = np.linspace(0.0, int(ax.get_xlim()[1]+1), 100)
-        y = self.gauss(params, x)
+        if(normalized):
+            y = self.gauss_norm(params, x)
+        else:
+            y = self.gauss(params, x)
         ax.plot(x,y, ':', label='fit curve')
+        ax.legend()
     
 def main()->None:
    marine = unit_classes.attacker('marine', 3, 20, no_models=5)

@@ -1,2 +1,2 @@
 name,num_shots,strength,ap,dmg,shot_type,shot_mod,dmg_type,dmg_mod
-Heavy Flamer, 6, 5, -1, 1,random,,, 
+Plasma Blaster, 3, 8, -3, 1,random,,, 

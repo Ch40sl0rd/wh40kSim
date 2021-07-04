@@ -1,2 +1,2 @@
 name,toughness,armor,hp,unit_type,hitmod,woundmod,invun_save
-Guardsmen, 3, 5, 1,,,,
+Guardsmen, 3, 5, 1,infantry,,,
