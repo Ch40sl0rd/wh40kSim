@@ -10,15 +10,16 @@ import scipy.odr as odr
 class Simulation():
     def __init__(self, attacker, target, weapon, num_runs:int = 10000):
         if (isinstance(attacker, unit_classes.Attacker)==False):
-            raise TypeError
+            raise TypeError('selected attacker is not of type attacker')
         if(isinstance(target, unit_classes.Target)==False):
-            raise TypeError
+            raise TypeError('selected target is not of type target')
         if(isinstance(weapon, unit_classes.Weapon)==False):
-            raise TypeError
+            raise TypeError('selected weapon is not of type weapon')
         self.attacker = attacker
         self.target = target
         self.weapon = weapon
         self.num_runs = num_runs
+        self.sim_damage = []
         
     def __repr__(self):
         return f'Simulation(attacker={self.attacker.name}, target={self.target.name}, weapon={self.weapon.name})'
@@ -201,7 +202,7 @@ class Simulation():
                 dmg += self.__attack_sequence(randi)
         return dmg
     
-    def simulate_attack_sequence(self)->np.ndarray:
+    def simulate_attack_sequence(self):
         if(self.target.unit_type == 'infantry'):
             func = self.unit_shooting_infantry
         elif(self.target.unit_type == 'vehicle'):
@@ -257,7 +258,7 @@ class Simulation():
             beta = [1.0, 0.5]
         else:
             gaussf = odr.Model(self.gauss)
-            beta = [10000, 1.0, 0.5]
+            beta = [self.num_runs, 1.0, 0.5]
 
         yerr = np.array([x if x !=0 else 2.0 for x in yerr])
         
