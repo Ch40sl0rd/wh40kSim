@@ -6,29 +6,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.odr as odr
+from dataclasses import dataclass
 
 class Simulation():
-    def __init__(self, attacker, target, weapon, num_runs:int = 10000):
+        
+    def __init__(self, attacker, target, weapon, modifiers = None, num_runs:int = 10000):
         if (isinstance(attacker, unit_classes.Attacker)==False):
             raise TypeError('selected attacker is not of type attacker')
         if(isinstance(target, unit_classes.Target)==False):
             raise TypeError('selected target is not of type target')
         if(isinstance(weapon, unit_classes.Weapon)==False):
             raise TypeError('selected weapon is not of type weapon')
+        if modifiers == None:
+            self.modifiers = unit_classes.Modifiers(0,0,0)
+        elif len(modifiers)==3:
+            self.modifiers = unit_classes.Modifiers(*modifiers)
+        else:
+            raise TypeError('Not supported type of modifier selected')
         self.attacker = attacker
         self.target = target
         self.weapon = weapon
         self.num_runs = num_runs
         self.sim_damage = []
         
+        
     def __repr__(self):
-        return f'Simulation(attacker={self.attacker.name}, target={self.target.name}, weapon={self.weapon.name})'
+        return f'Simulation(attacker={self.attacker.name}, target={self.target.name}, weapon={self.weapon.name}, modifiers={self.modifiers})'
      
     
     @classmethod
     def from_dataframes(cls, at_frame, tg_frame, wp_frame, n:int = 10000):
-        default_attacker = {'hitmod':0, 'woundmod':0, 'unit_type':'infantry', 'no_models':1}
-        default_target = {'unit_type':'infantry', 'hitmod':0, 'woundmod':0, 'invun_save':0}
+        default_attacker = {'unit_type':'infantry', 'no_models':1}
+        default_target = {'unit_type':'infantry', 'invun_save':0}
         default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
         attacker = unit_classes.Attacker(*at_frame.fillna(value=default_attacker))
         target = unit_classes.Target(*tg_frame.fillna(value=default_target))
@@ -37,8 +46,8 @@ class Simulation():
     
     @classmethod
     def from_csv_datafiles(cls, at_file : str, tg_file : str, wp_file : str, n:int = 10000):
-        default_attacker = {'hitmod':0, 'woundmod':0, 'unit_type':'infantry', 'no_models':1}
-        default_target = {'unit_type':'infantry', 'hitmod':0, 'woundmod':0, 'invun_save':0}
+        default_attacker = {'unit_type':'infantry', 'no_models':1}
+        default_target = {'unit_type':'infantry','invun_save':0}
         default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
         
         attacker = unit_classes.Attacker(*pd.read_csv(at_file, skipinitialspace=True).iloc[0].fillna(value=default_attacker))
@@ -86,8 +95,7 @@ class Simulation():
         hit_roll = randi.randint(1,6)
         if(hit_roll == 1):
             return False
-        hit_mod = self.__restrict_value(self.attacker.hit_mod + self.target.hit_mod, -1, 1)
-        hit_roll = self.__restrict_value(hit_roll + hit_mod, 1, 6)
+        hit_roll = self.__restrict_value(hit_roll + self.modifiers.hitmod, 1, 6)
         if(hit_roll < self.attacker.ws ):
             return False
         else:
@@ -97,8 +105,7 @@ class Simulation():
         wound_roll = randi.randint(1,6)
         if(wound_roll==1):
             return False
-        wound_mod = self.__restrict_value(self.attacker.wound_mod + self.target.wound_mod, -1, 1)
-        wound_roll = self.__restrict_value(wound_roll + wound_mod, 1, 6)
+        wound_roll = self.__restrict_value(wound_roll + self.modifiers.woundmod, 1, 6)
         #check wound roll results
         if(self.weapon.strength == self.target.toughness and wound_roll < 4):
             return False
@@ -111,11 +118,10 @@ class Simulation():
         return True
 
     def __armorsave(self, randi)->bool:
-        random.Random()
         #check if armor can save the attack or invun save exists
         if(self.target.armor - self.weapon.ap < 7 or self.target.invun_save!=0):
             save_roll = randi.randint(1,6)
-            if(self.target.armor - self.weapon.ap > self.target.invun_save and self.target.invun_save != 0):
+            if(self.target.armor - self.weapon.ap > self.target.invun_save and self.target.invun_save ):
                 save = self.target.invun_save
             else:
                 save = self.target.armor
@@ -128,9 +134,11 @@ class Simulation():
     def __weapon_dmg(self, randi)->float:
         dmg = 0
         if(self.weapon.dmg_type == 'flat'):
-            dmg = self.weapon.dmg + self.weapon.dmg_mod
+            dmg = self.weapon.dmg + self.weapon.dmg_mod + self.modifiers.dmgmod
+            if dmg == 0 : dmg = 1
         elif(self.weapon.dmg_type == 'random' or self.weapon.dmg_type == 'mixed'):
-            dmg = randi.randint(1,self.weapon.dmg) + self.weapon.dmg_mod
+            dmg = randi.randint(1,self.weapon.dmg) + self.weapon.dmg_mod + self.modifiers.dmgmod
+            if dmg == 0 : dmg = 1
         else:
             raise ValueError
         return dmg
@@ -279,17 +287,18 @@ class Simulation():
         ax.legend()
     
 def main()->None:
-   marine = unit_classes.attacker('marine', 3, 20, no_models=5)
-   guardsmen = unit_classes.target('guardsmen', 3, 5, 1)
-   rhino = unit_classes.target('rhino', 7, 3, 11, unit_type='vehicle')
-   custodes = unit_classes.target('custodes', 5, 2, 3)
-   bolt_rifle = unit_classes.weapon('Bolt Rifle', 2, 4, -1, 1)
+   marine = unit_classes.Attacker('marine', 3, 20, no_models=5)
+   guardsmen = unit_classes.Target('guardsmen', 3, 5, 1)
+   rhino = unit_classes.Target('rhino', 7, 3, 11, unit_type='vehicle')
+   custodes = unit_classes.Target('custodes', 5, 2, 3)
+   bolt_rifle = unit_classes.Weapon('Bolt Rifle', 2, 4, -1, 1)
    
-   sim = Simulation(marine, custodes, bolt_rifle)
+   sim = Simulation(marine, custodes, bolt_rifle, [1,1,-1])
+   print(sim)
    max_dmg = (sim.attacker.no_models*sim.weapon.num_shots)/float(sim.target.hp)
    array = np.ones(10000)
    for i in range(10000):
-    array[i] = dmg = sim.unit_shooting_infantry()
+    array[i] = sim.unit_shooting_infantry()
    plt.hist(array, 12, range=(0,max_dmg))
    plt.show()
            
