@@ -9,11 +9,11 @@ layout_attacker =  [
                         [sg.Text('unit type:')],
                         [sg.Text('no. models:')]], size=(80,250) ),
                     sg.Column([
-                        [sg.InputText(key='-ATTACKER-NAME-')],
-                        [sg.InputText(key='-ATTACKER-WS-')],
-                        [sg.InputText(key='-ATTACKER-PPM-')],
+                        [sg.InputText(default_text = 'Intercessor', key='-ATTACKER-NAME-')],
+                        [sg.InputText(default_text = '3', key='-ATTACKER-WS-')],
+                        [sg.InputText(default_text = '20', key='-ATTACKER-PPM-')],
                         [sg.OptionMenu(['infantry','vehicle'],default_value='infantry', key='-ATTACKER-UNITTYPE-')],
-                        [sg.InputText(key='-ATTACKER-NUMMODELS-')]], size=(100, 250))
+                        [sg.InputText(default_text = '1', key='-ATTACKER-NUMMODELS-')]], size=(100, 250))
                     ]
 ]
 
@@ -28,10 +28,10 @@ layout_target = [
                         [sg.Text('invun save:')]
                     ], size=(80, 250)),
                     sg.Column([
-                        [sg.InputText(key='-TARGET-NAME-')],
-                        [sg.InputText(key='-TARGET-TOUGHNESS-')],
-                        [sg.InputText(key='-TARGET-ARMOR-')],
-                        [sg.InputText(key='-TARGET-HP-')],
+                        [sg.InputText(default_text = 'Guardsman', key='-TARGET-NAME-')],
+                        [sg.InputText(default_text = '3', key='-TARGET-TOUGHNESS-')],
+                        [sg.InputText(default_text = '5', key='-TARGET-ARMOR-')],
+                        [sg.InputText(default_text = '1', key='-TARGET-HP-')],
                         [sg.OptionMenu(['infantry', 'vehicle'],default_value='infantry', key='-TARGET-UNITTYPE-')],
                         [sg.InputText(default_text='0', key='-TARGET-INVUNSAVE-')],
                     ], size=(100, 250))]
@@ -51,15 +51,15 @@ layout_weapon = [
                         [sg.Text('damage mod:')],
                     ], size=(100, 250)),
                     sg.Column([
-                        [sg.InputText(key='-WEAPON-NAME-')],
-                        [sg.InputText(key='-WEAPON-NUMSHOTS-')],
-                        [sg.InputText(key='-WEAPON-STRENGTH-')],
-                        [sg.InputText(key='-WEAPON-AP-')],
-                        [sg.InputText(key='-WEAPON-DMG-')],
-                        [sg.OptionMenu(['flat', 'random', 'blast'], key='-WEAPON-SHOTTYPE-')],
-                        [sg.InputText(key='-WEAPON-SHOTMOD-')],
-                        [sg.OptionMenu(['flat', 'random', 'mixed'],key='-WEAPON-DMGTYPE-')],
-                        [sg.InputText(key='-WEAPON-DMGMOD-')],
+                        [sg.InputText(default_text = 'Bolt rifle', key='-WEAPON-NAME-'), ],
+                        [sg.InputText(default_text = '2', key='-WEAPON-NUMSHOTS-')],
+                        [sg.InputText(default_text = '4', key='-WEAPON-STRENGTH-')],
+                        [sg.InputText(default_text = '1', key='-WEAPON-AP-')],
+                        [sg.InputText(default_text = '1', key='-WEAPON-DMG-')],
+                        [sg.OptionMenu(['flat', 'random', 'blast'],default_value='flat', key='-WEAPON-SHOTTYPE-')],
+                        [sg.InputText(default_text = '0', key='-WEAPON-SHOTMOD-')],
+                        [sg.OptionMenu(['flat', 'random', 'mixed'],default_value='flat', key='-WEAPON-DMGTYPE-')],
+                        [sg.InputText(default_text = '0', key='-WEAPON-DMGMOD-')],
                     ], size=(100, 250))
                     ]
 ]
