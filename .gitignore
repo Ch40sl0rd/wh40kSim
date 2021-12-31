@@ -25,3 +25,4 @@
 
 .vscode
 __pycache__
+test*
