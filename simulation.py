@@ -35,17 +35,17 @@ class Simulation():
      
     
     @classmethod
-    def from_dataframes(cls, at_frame, tg_frame, wp_frame, n:int = 10000):
+    def from_dataframes(cls, at_frame, tg_frame, wp_frame, n:int = 10000, modifiers = (0,0,0) ):
         default_attacker = {'unit_type':'infantry', 'no_models':1}
         default_target = {'unit_type':'infantry', 'invun_save':0}
         default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
         attacker = unit_classes.Attacker(*at_frame.fillna(value=default_attacker))
         target = unit_classes.Target(*tg_frame.fillna(value=default_target))
         weapon = unit_classes.Weapon(*wp_frame.fillna(value=default_weapon))
-        return cls(attacker, target, weapon, n)
+        return cls(attacker, target, weapon,modifiers, n)
     
     @classmethod
-    def from_csv_datafiles(cls, at_file : str, tg_file : str, wp_file : str, n:int = 10000):
+    def from_csv_datafiles(cls, at_file : str, tg_file : str, wp_file : str, n:int = 10000, modifiers = (0,0,0)):
         default_attacker = {'unit_type':'infantry', 'no_models':1}
         default_target = {'unit_type':'infantry','invun_save':0}
         default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
@@ -53,7 +53,7 @@ class Simulation():
         attacker = unit_classes.Attacker(*pd.read_csv(at_file, skipinitialspace=True).iloc[0].fillna(value=default_attacker))
         target = unit_classes.Target(*pd.read_csv(tg_file, skipinitialspace=True).iloc[0].fillna(value=default_target))
         weapon = unit_classes.Weapon(*pd.read_csv(wp_file, skipinitialspace=True).iloc[0].fillna(value=default_weapon))
-        return cls(attacker, target, weapon, n)
+        return cls(attacker, target, weapon,modifiers, n)
         
 
     @staticmethod
@@ -71,11 +71,10 @@ class Simulation():
         else:
             return value
         
-    @staticmethod
-    def gauss(A, x):
-        a = A[0]
-        mu = A[1]
-        sigma = A[2]
+    def gauss(self, A, x):
+        a = self.num_runs
+        mu = A[0]
+        sigma = A[1]
         return np.exp(-(x-mu)**2/(2.0*sigma**2))/np.sqrt(2.0*np.pi*sigma**2)*a
     
     @staticmethod
@@ -83,6 +82,20 @@ class Simulation():
         mu = A[0]
         sigma = A[1]
         return np.exp(-(x-mu)**2/(2*sigma**2))/(np.sqrt(2*np.pi)*sigma)
+    
+    def __guess_avg_damage(self):
+        fac_hit = 1-(float(self.attacker.ws)-1)/(float(6))
+        if self.weapon.strength > self.target.toughness:
+            fac_wound = 0.33
+        elif self.weapon.strength < self.target.toughness:
+            fac_wound = 0.66
+        else:
+            fac_wound = 0.5
+        fac_armor = float(self.target.armor+self.weapon.ap-1)/float(6)
+        if self.target.unit_type == 'infantry':
+            return self.attacker.no_models*self.weapon.num_shots*fac_hit*fac_wound*fac_armor*self.weapon.dmg/float(self.target.hp)
+        else:
+            return self.attacker.no_models*self.weapon.num_shots*fac_hit*fac_wound*fac_armor*self.weapon.dmg
     
     def __num_shots(self,randi)->int:
         if(self.weapon.shot_type=='flat'):
@@ -126,7 +139,7 @@ class Simulation():
             else:
                 save = self.target.armor
                 save_roll = self.__restrict_value(save_roll + self.weapon.ap, 1, 6)
-            if(save_roll > save):
+            if(save_roll >= save):
                 return False
             
         return True
@@ -135,10 +148,10 @@ class Simulation():
         dmg = 0
         if(self.weapon.dmg_type == 'flat'):
             dmg = self.weapon.dmg + self.weapon.dmg_mod + self.modifiers.dmgmod
-            if dmg == 0 : dmg = 1
+            if dmg <= 0 : dmg = 1
         elif(self.weapon.dmg_type == 'random' or self.weapon.dmg_type == 'mixed'):
             dmg = randi.randint(1,self.weapon.dmg) + self.weapon.dmg_mod + self.modifiers.dmgmod
-            if dmg == 0 : dmg = 1
+            if dmg <= 0 : dmg = 1
         else:
             raise ValueError
         return dmg
@@ -223,27 +236,30 @@ class Simulation():
             results[i] = func()
         return results
     
-    def visualize_data(self, data, normalized:bool=False)->plt.Figure:
+    def visualize_data(self, data, normalized:bool=False, labels:bool=False, title:bool=False)->plt.Figure:
         if(self.target.unit_type=='infantry'):
             max_dmg = int(np.max(data)+1)
             bins = np.arange(-1/(2*self.target.hp), max_dmg, 1/float(self.target.hp))
-            xlabel = f'Number of {self.target.name} models killed'
+            xlabel = f'Number of models slain'
         else:
             max_dmg = int(np.max(data)+1)
             bins = np.arange(-0.5, max_dmg)
-            xlabel = f'Damage infliceted to {self.target.name}'
+            xlabel = f'Damage infliceted to vehicle'
         
-        if not normalized:
+        if not normalized and labels:
             ylabel = 'Number of events'
-        else:
+        elif labels:
             ylabel = 'Relative probability'
-        fig = plt.figure(1,(8,6))
+        fig = plt.figure(figsize=(5,3.5))
         ax1 = fig.add_subplot(111)    
         ax1.hist(data, bins=bins, density=normalized, label='simulated damage')
-        ax1.set_ylabel(ylabel)
-        ax1.set_xlabel(xlabel)
-        ax1.set_title(f'{self.attacker.name} attacking {self.target.name} with {self.weapon.name}')
+        if labels:
+            ax1.set_ylabel(ylabel)
+            ax1.set_xlabel(xlabel)
+        if title:
+            ax1.set_title(f'{self.attacker.name} attacking {self.target.name} with {self.weapon.name}')
         ax1.legend()
+        fig.set_tight_layout(True)
         return fig
     
     def analyze_data(self, data, normalized:bool = False):
@@ -263,10 +279,10 @@ class Simulation():
         
         if normalized:    
             gaussf = odr.Model(self.gauss_norm)
-            beta = [1.0, 0.5]
+            beta = [bins[np.argmax(hist)], 0.5]
         else:
             gaussf = odr.Model(self.gauss)
-            beta = [self.num_runs, 1.0, 0.5]
+            beta = [bins[np.argmax(hist)], 0.5]
 
         yerr = np.array([x if x !=0 else 2.0 for x in yerr])
         

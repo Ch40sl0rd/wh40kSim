@@ -1,83 +1,53 @@
 import PySimpleGUI as sg
-
-layout_attacker =  [
+sizeText = (12,1)
+sizeInput = (15,1)
+tab_attacker =  sg.Tab('Attacker',[
                     [sg.Text('Define the attacker statline')],
                     [sg.Column([
-                        [sg.Text('name:')],
-                        [sg.Text('ws:')],
-                        [sg.Text('ppm:')],
-                        [sg.Text('unit type:')],
-                        [sg.Text('no. models:')]], size=(80,250) ),
-                    sg.Column([
-                        [sg.InputText(default_text = 'Intercessor', key='-ATTACKER-NAME-')],
-                        [sg.InputText(default_text = '3', key='-ATTACKER-WS-')],
-                        [sg.InputText(default_text = '20', key='-ATTACKER-PPM-')],
-                        [sg.OptionMenu(['infantry','vehicle'],default_value='infantry', key='-ATTACKER-UNITTYPE-')],
-                        [sg.InputText(default_text = '1', key='-ATTACKER-NUMMODELS-')]], size=(100, 250))
-                    ]
-]
+                        [sg.Text('name:', size=sizeText), sg.Input(default_text = 'Intercessor',size=(15,1), key='-ATTACKER-NAME-')],
+                        [sg.Text('ws:', size=sizeText), sg.Input(default_text = '3',size = sizeInput, key='-ATTACKER-WS-')],
+                        [sg.Text('ppm:', size=sizeText), sg.Input(default_text = '20',size = sizeInput, key='-ATTACKER-PPM-')],
+                        [sg.Text('unit type:', size=sizeText), sg.OptionMenu(['infantry','vehicle'],default_value='infantry',size = sizeText, key='-ATTACKER-UNITTYPE-')],
+                        [sg.Text('no. models:', size=sizeText ), sg.Input(default_text = '1',size = sizeInput, key='-ATTACKER-NUMMODELS-')]
+                     ])]
+])
 
-layout_target = [
+tab_target = sg.Tab('Target', [
                     [sg.Text('Define the target statline')],
                     [sg.Column([
-                        [sg.Text('name:')],
-                        [sg.Text('toughness:')],
-                        [sg.Text('armor:')],
-                        [sg.Text('hp:')],
-                        [sg.Text('unit type:')],
-                        [sg.Text('invun save:')]
-                    ], size=(80, 250)),
-                    sg.Column([
-                        [sg.InputText(default_text = 'Guardsman', key='-TARGET-NAME-')],
-                        [sg.InputText(default_text = '3', key='-TARGET-TOUGHNESS-')],
-                        [sg.InputText(default_text = '5', key='-TARGET-ARMOR-')],
-                        [sg.InputText(default_text = '1', key='-TARGET-HP-')],
-                        [sg.OptionMenu(['infantry', 'vehicle'],default_value='infantry', key='-TARGET-UNITTYPE-')],
-                        [sg.InputText(default_text='0', key='-TARGET-INVUNSAVE-')],
-                    ], size=(100, 250))]
-                ]
+                        [sg.Text('name:', size=sizeText), sg.InputText(default_text = 'Guardsman', size=sizeInput, key='-TARGET-NAME-')],
+                        [sg.Text('toughness:', size=sizeText), sg.InputText(default_text = '3', size=sizeInput, key='-TARGET-TOUGHNESS-')],
+                        [sg.Text('armor:', size=sizeText), sg.InputText(default_text = '5', size=sizeInput, key='-TARGET-ARMOR-')],
+                        [sg.Text('hp:', size=sizeText), sg.InputText(default_text = '1', size=sizeInput, key='-TARGET-HP-')],
+                        [sg.Text('unit type:', size=sizeText), sg.OptionMenu(['infantry', 'vehicle'],default_value='infantry', size=sizeText, key='-TARGET-UNITTYPE-')],
+                        [sg.Text('invun save:', size=sizeText), sg.InputText(default_text='0', size=sizeInput, key='-TARGET-INVUNSAVE-')]
+                    ])]
+])
 
-layout_weapon = [
+tab_weapon = sg.Tab('Weapon', layout=[
                     [sg.Text('Define weapon statline')],
                     [sg.Column([
-                        [sg.Text('name:')],
-                        [sg.Text('no. shots:')],
-                        [sg.Text('strength:')],
-                        [sg.Text('ap:')],
-                        [sg.Text('damage:')],
-                        [sg.Text('shot type:')],
-                        [sg.Text('shot mod:')],
-                        [sg.Text('damage type:')],
-                        [sg.Text('damage mod:')],
-                    ], size=(100, 250)),
-                    sg.Column([
-                        [sg.InputText(default_text = 'Bolt rifle', key='-WEAPON-NAME-'), ],
-                        [sg.InputText(default_text = '2', key='-WEAPON-NUMSHOTS-')],
-                        [sg.InputText(default_text = '4', key='-WEAPON-STRENGTH-')],
-                        [sg.InputText(default_text = '1', key='-WEAPON-AP-')],
-                        [sg.InputText(default_text = '1', key='-WEAPON-DMG-')],
-                        [sg.OptionMenu(['flat', 'random', 'blast'],default_value='flat', key='-WEAPON-SHOTTYPE-')],
-                        [sg.InputText(default_text = '0', key='-WEAPON-SHOTMOD-')],
-                        [sg.OptionMenu(['flat', 'random', 'mixed'],default_value='flat', key='-WEAPON-DMGTYPE-')],
-                        [sg.InputText(default_text = '0', key='-WEAPON-DMGMOD-')],
-                    ], size=(100, 250))
-                    ]
-]
+                        [sg.Text('name:', size=sizeText), sg.Input(default_text = 'Bolt rifle', size=sizeInput, key='-WEAPON-NAME-')],
+                        [sg.Text('no. shots:', size=sizeText), sg.Input(default_text = '2', size=sizeInput, key='-WEAPON-NUMSHOTS-')],
+                        [sg.Text('strength:', size=sizeText), sg.Input(default_text = '4', size=sizeInput, key='-WEAPON-STRENGTH-')],
+                        [sg.Text('ap:', size=sizeText), sg.Input(default_text = '-1', size=sizeInput, key='-WEAPON-AP-')],
+                        [sg.Text('damage:', size=sizeText), sg.Input(default_text = '1', size=sizeInput, key='-WEAPON-DMG-')],
+                        [sg.Text('shot type:', size=sizeText), sg.OptionMenu(['flat', 'random', 'blast'],default_value='flat', size=sizeText, key='-WEAPON-SHOTTYPE-')],
+                        [sg.Text('shot mod:', size=sizeText), sg.Input(default_text = '0', size=sizeInput, key='-WEAPON-SHOTMOD-')],
+                        [sg.Text('damage type:', size=sizeText), sg.OptionMenu(['flat', 'random', 'mixed'],default_value='flat', size=sizeText, key='-WEAPON-DMGTYPE-')],
+                        [sg.Text('damage mod:', size=sizeText), sg.Input(default_text = '0', size=sizeInput, key='-WEAPON-DMGMOD-')],
+                    ])]
+])
 
-layout_modifiers = [
+tab_modifiers = sg.Tab(title='Modifiers', layout=[
                 [sg.Text('Define the modifiers')],
                 [sg.Column([
-                    [sg.Text('Hitmod')],
-                    [sg.Text('Woundmod')],
-                    [sg.Text('Dmgmod')]
-                    ], size= (80, 150)),
-                 sg.Column([
-                    [sg.OptionMenu(['+1', '0', '-1'], default_value='0', key='-HITMOD-')],
-                    [sg.OptionMenu(['+1', '0', '-1'], default_value='0', key='-WOUNDMOD-')],
-                    [sg.OptionMenu(['0', '-1'], default_value='0', key='-DMGMOD-')],
-                 ], size=(100, 150))
+                    [sg.Text('Hitmod', size=sizeText), sg.OptionMenu(['+1', '0', '-1'], default_value='0',size=sizeInput, key='-HITMOD-')],
+                    [sg.Text('Woundmod', size= sizeText), sg.OptionMenu(['+1', '0', '-1'], default_value='0',size=sizeInput, key='-WOUNDMOD-')],
+                    [sg.Text('Dmgmod', size=sizeText), sg.OptionMenu(['0', '-1'], default_value='0',size = sizeInput, key='-DMGMOD-')]
+                    ])
                 ]                
-]
+])
 
 layout_results = [
                 [sg.Text('Results of Simulation', key='-RESULTSHEAD-')],
@@ -99,9 +69,8 @@ layout_buttons = [
                 [sg.Button('Exit', key='-EXIT-')]
 ]
 
-layout =    [
-                [sg.Column(layout_attacker), sg.VerticalSeparator(), sg.Column(layout_target),
-                    sg.VerticalSeparator(), sg.Column(layout_weapon), sg.VerticalSeparator(), sg.Column(layout_modifiers)],
+layout_mainwindow =    [
+                [sg.TabGroup([[tab_attacker, tab_target, tab_weapon, tab_modifiers]]), sg.Frame('Results', [[sg.Canvas(size= (20,10),key='-CANVAS-')]])],
                 [sg.HorizontalSeparator()],
-                [sg.Column(layout_buttons), sg.VerticalSeparator(), sg.Column(layout_results, key='-RESULTSCOL-', visible=False)]
+                [sg.Column(layout_buttons), sg.VerticalSeparator(), sg.Frame('Log', [[sg.Multiline(size=(65,10), autoscroll=True, write_only=True, reroute_stdout=True)]]) ]
             ]

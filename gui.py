@@ -2,6 +2,12 @@ import PySimpleGUI as sg
 import src.layouts
 import unit_classes
 from simulation import Simulation
+import numpy as np
+from matplotlib.ticker import NullFormatter  # useful for `logit` scale
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 def create_attacker(values) -> unit_classes.Attacker :
     if values['-ATTACKER-NAME-'] == '' : 
@@ -125,18 +131,39 @@ def create_sim(values):
     except TypeError:
         print('Simulation could not be created.')
         simulation = None
-    print(simulation)
+    return simulation
 
-#create main window
-window = sg.Window(title='Hello World', layout=src.layouts.layout, margins=(50,50))
-#main event loop
-while True:
-    event, values = window.read()
-    if event == '-EXIT-' or event == sg.WIN_CLOSED:
-        window.close()
-        break
-    elif event == '-CREATESIM-':
-        create_sim(values)
-    elif event =='-RUNSIM-':
-        print(values)
-        
+def draw_figure(canvas, figure):
+    figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    return figure_canvas_agg
+
+def update_figure(cur_fig, canvas, figure):
+    cur_fig.get_tk_widget().forget()
+    return draw_figure(canvas, figure)
+
+if __name__ == '__main__':
+    #create main window
+    window = sg.Window(title='WH40k Damage Sim', layout=src.layouts.layout_mainwindow,finalize=True, margins=(50,50), resizable=True)
+    current_figure = draw_figure(window['-CANVAS-'].TKCanvas, plt.Figure(figsize=(5,3.5)))
+    #main event loop
+    while True:
+        event, values = window.read()
+        if event == '-EXIT-' or event == sg.WIN_CLOSED:
+            window.close()
+            break
+        elif event == '-CREATESIM-':
+            simulation = create_sim(values)
+        elif event =='-RUNSIM-':
+            try:
+                results = simulation.simulate_attack_sequence()
+            except NameError:
+                print('No Simulation created.')
+        elif event == '-RESULTSSHOW-':
+            try:
+                print(simulation.analyze_data(results))
+                current_figure = update_figure(current_figure, window['-CANVAS-'].TKCanvas, simulation.visualize_data(results,normalized=True, labels=True))
+                
+            except NameError:
+                print('No results generated so far.')     
