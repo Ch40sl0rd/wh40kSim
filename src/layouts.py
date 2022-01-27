@@ -15,11 +15,11 @@ tab_attacker =  sg.Tab('Attacker',[
 tab_target = sg.Tab('Target', [
                     [sg.Text('Define the target statline')],
                     [sg.Column([
-                        [sg.Text('name:', size=sizeText), sg.InputText(default_text = 'Guardsman', size=sizeInput, key='-TARGET-NAME-')],
-                        [sg.Text('toughness:', size=sizeText), sg.InputText(default_text = '3', size=sizeInput, key='-TARGET-TOUGHNESS-')],
-                        [sg.Text('armor:', size=sizeText), sg.InputText(default_text = '5', size=sizeInput, key='-TARGET-ARMOR-')],
+                        [sg.Text('name:', size=sizeText), sg.InputText(default_text = 'Rhino', size=sizeInput, key='-TARGET-NAME-')],
+                        [sg.Text('toughness:', size=sizeText), sg.InputText(default_text = '7', size=sizeInput, key='-TARGET-TOUGHNESS-')],
+                        [sg.Text('armor:', size=sizeText), sg.InputText(default_text = '3', size=sizeInput, key='-TARGET-ARMOR-')],
                         [sg.Text('hp:', size=sizeText), sg.InputText(default_text = '1', size=sizeInput, key='-TARGET-HP-')],
-                        [sg.Text('unit type:', size=sizeText), sg.OptionMenu(['infantry', 'vehicle'],default_value='infantry', size=sizeText, key='-TARGET-UNITTYPE-')],
+                        [sg.Text('unit type:', size=sizeText), sg.OptionMenu(['infantry', 'vehicle'],default_value='vehicle', size=sizeText, key='-TARGET-UNITTYPE-')],
                         [sg.Text('invun save:', size=sizeText), sg.InputText(default_text='0', size=sizeInput, key='-TARGET-INVUNSAVE-')]
                     ])]
 ])

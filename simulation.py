@@ -223,7 +223,17 @@ class Simulation():
                 dmg += self.__attack_sequence(randi)
         return dmg
     
-    def simulate_attack_sequence(self):
+    def simulate_attack_sequence(self)->np.ndarray:
+        '''This method simulates a full attack sequence with the attacker, target
+            and weapon of the simulation.
+            If the target is of unit type infantry, this method will calculate
+            the number of target models slain.
+            If the target is of unit type vehicle, this method will calculate
+            the total damage dealt to such a vehicle.
+            
+            Return:
+            numpy.ndarray: array of the damage dealt or infantry models killed 
+        '''
         if(self.target.unit_type == 'infantry'):
             func = self.unit_shooting_infantry
         elif(self.target.unit_type == 'vehicle'):
@@ -236,20 +246,49 @@ class Simulation():
             results[i] = func()
         return results
     
+    
+    def __bin_size(self)->float:
+        '''
+            This method calculates bin size for data analysis and visualization
+            depending on the parameters of the simulation.
+        '''
+        #differentiate between target unit types
+        if(self.target.unit_type=='vehicle'):
+            #differentiate between random and flat damage weapons
+            if(self.weapon.dmg_type=='random' or self.weapon.dmg_type=='mixed'):
+                return float(1 + self.weapon.dmg_mod + self.modifiers.dmgmod)
+            else:
+                return float(self.weapon.dmg + self.weapon.dmg_mod+self.modifiers.dmgmod )
+        elif(self.target.unit_type == 'infantry'):
+            if(self.weapon.dmg_type == 'random' or self.weapon.dmg_type == 'mixed'):
+                min_dmg = 1 + self.weapon.dmg_mod + self.modifiers.dmgmod
+                if min_dmg >= self.target.hp :
+                    return 1.
+                else:
+                    return float(1/self.target.hp)
+            else:
+                min_dmg = self.weapon.dmg + self.weapon.dmg_mod + self.modifiers.dmgmod
+                if min_dmg >= self.target.hp:
+                    return 1.0
+                else:
+                    return float(1/self.target.hp)
+        else:
+            return 1.
+            #raise TypeError('target unit has no supported unit type')
+        
     def visualize_data(self, data, normalized:bool=False, labels:bool=False, title:bool=False)->plt.Figure:
+        max_dmg = int(np.max(data)+1)
+        bins = np.arange(-0.5*self.__bin_size(), max_dmg, self.__bin_size())
+        
         if(self.target.unit_type=='infantry'):
-            max_dmg = int(np.max(data)+1)
-            bins = np.arange(-1/(2*self.target.hp), max_dmg, 1/float(self.target.hp))
             xlabel = f'Number of models slain'
         else:
-            max_dmg = int(np.max(data)+1)
-            bins = np.arange(-0.5, max_dmg)
             xlabel = f'Damage infliceted to vehicle'
-        
         if not normalized and labels:
             ylabel = 'Number of events'
         elif labels:
             ylabel = 'Relative probability'
+            
         fig = plt.figure(figsize=(5,3.5))
         ax1 = fig.add_subplot(111)    
         ax1.hist(data, bins=bins, density=normalized, label='simulated damage')
@@ -264,10 +303,7 @@ class Simulation():
     
     def analyze_data(self, data, normalized:bool = False):
         max_dmg = int(np.max(data)+1)
-        if(self.target.unit_type=='infantry'):
-            bins = np.arange(-1/(2*self.target.hp), max_dmg, 1/float(self.target.hp))
-        else:
-            bins = np.arange(-0.5, max_dmg+0.5)
+        bins = np.arange(-0.5*self.__bin_size(), max_dmg, self.__bin_size())
             
         hist, bins = np.histogram(data, bins=bins, density=normalized)
         dmg_points = [bins[i]-(bins[i]-bins[i-1])/2.0 for i in range(1,len(bins))]

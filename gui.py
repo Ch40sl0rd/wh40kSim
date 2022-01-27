@@ -73,7 +73,7 @@ def create_target(values) -> unit_classes.Target :
         invun_save = int(values['-TARGET-INVUNSAVE-'])
     except ValueError:
         invun_save = 0
-        print('No invuknerable save given. Target is assumed to have no invulnerable save.')
+        print('No invulnerable save given. Target is assumed to have no invulnerable save.')
         
     return unit_classes.Target(name, toughness, armor, hp, unit_type, invun_save)
 
