@@ -162,7 +162,7 @@ if __name__ == '__main__':
                 print('No Simulation created.')
         elif event == '-RESULTSSHOW-':
             try:
-                print(simulation.analyze_data(results))
+                print(simulation.output_results(results))
                 current_figure = update_figure(current_figure, window['-CANVAS-'].TKCanvas, simulation.visualize_data(results,normalized=True, labels=True))
                 
             except NameError:

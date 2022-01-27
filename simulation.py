@@ -274,7 +274,6 @@ class Simulation():
                     return float(1/self.target.hp)
         else:
             return 1.
-            #raise TypeError('target unit has no supported unit type')
         
     def visualize_data(self, data, normalized:bool=False, labels:bool=False, title:bool=False)->plt.Figure:
         max_dmg = int(np.max(data)+1)
@@ -337,6 +336,17 @@ class Simulation():
             y = self.gauss(params, x)
         ax.plot(x,y, ':', label='fit curve')
         ax.legend()
+        
+    def output_results(self, data):
+        results = self.analyze_data(data)
+        return {'attacker':self.attacker, 
+                'target':self.target,
+                'weapon':self.weapon,
+                'modifiers':self.modifiers,
+                'avg_dmg':results[0][0],
+                'delta_avg_dmg':results[1][0],
+                'sigma':results[0][1],
+                'delta_sigma':results[1][1]}
     
 def main()->None:
    marine = unit_classes.Attacker('marine', 3, 20, no_models=5)
