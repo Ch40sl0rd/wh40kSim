@@ -323,9 +323,9 @@ class Simulation():
         ax.plot(x,y, ':', label='fit curve')
         ax.legend()
         
-    def output_results(self, data):
+    def output_results(self, data, file_name:str = None):
         results = self.analyze_data(data)
-        return {'attacker':self.attacker, 
+        output = {'attacker':self.attacker, 
                 'target':self.target,
                 'weapon':self.weapon,
                 'modifiers':self.modifiers,
@@ -333,6 +333,10 @@ class Simulation():
                 'delta_avg_dmg':results[1][0],
                 'sigma':results[0][1],
                 'delta_sigma':results[1][1]}
+        if file_name == None:
+            return output
+        file = open(file_name, 'a')
+            
     
 def main()->None:
    marine = unit_classes.Attacker('marine', 3, 20, no_models=5)
