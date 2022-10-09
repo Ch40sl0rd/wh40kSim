@@ -83,29 +83,15 @@ class Simulation():
         sigma = A[1]
         return np.exp(-(x-mu)**2/(2*sigma**2))/(np.sqrt(2*np.pi)*sigma)
     
-    def __guess_avg_damage(self):
-        fac_hit = 1-(float(self.attacker.ws)-1)/(float(6))
-        if self.weapon.strength > self.target.toughness:
-            fac_wound = 0.33
-        elif self.weapon.strength < self.target.toughness:
-            fac_wound = 0.66
-        else:
-            fac_wound = 0.5
-        fac_armor = float(self.target.armor+self.weapon.ap-1)/float(6)
-        if self.target.unit_type == 'infantry':
-            return self.attacker.no_models*self.weapon.num_shots*fac_hit*fac_wound*fac_armor*self.weapon.dmg/float(self.target.hp)
-        else:
-            return self.attacker.no_models*self.weapon.num_shots*fac_hit*fac_wound*fac_armor*self.weapon.dmg
-    
     def __num_shots(self,randi)->int:
         if(self.weapon.shot_type=='flat'):
             num_shots = self.weapon.num_shots + self.weapon.shot_mod
         else:
-            num_shots = randi.randint(1,self.weapon.num_shots) + self.weapon.shot_mod
+            num_shots = randi.randint(1,self.weapon.num_shots+1) + self.weapon.shot_mod
         return num_shots
     
     def __hitroll(self, randi)->bool:
-        hit_roll = randi.randint(1,6)
+        hit_roll = randi.randint(1,7)
         if(hit_roll == 1):
             return False
         hit_roll = self.__restrict_value(hit_roll + self.modifiers.hitmod, 1, 6)
@@ -115,7 +101,7 @@ class Simulation():
             return True
 
     def __woundroll(self, randi)->bool:
-        wound_roll = randi.randint(1,6)
+        wound_roll = randi.randint(1,7)
         if(wound_roll==1):
             return False
         wound_roll = self.__restrict_value(wound_roll + self.modifiers.woundmod, 1, 6)
@@ -133,7 +119,7 @@ class Simulation():
     def __armorsave(self, randi)->bool:
         #check if armor can save the attack or invun save exists
         if(self.target.armor - self.weapon.ap < 7 or self.target.invun_save!=0):
-            save_roll = randi.randint(1,6)
+            save_roll = randi.randint(1,7)
             if(self.target.armor - self.weapon.ap > self.target.invun_save and self.target.invun_save ):
                 save = self.target.invun_save
             else:
@@ -150,7 +136,7 @@ class Simulation():
             dmg = self.weapon.dmg + self.weapon.dmg_mod + self.modifiers.dmgmod
             if dmg <= 0 : dmg = 1
         elif(self.weapon.dmg_type == 'random' or self.weapon.dmg_type == 'mixed'):
-            dmg = randi.randint(1,self.weapon.dmg) + self.weapon.dmg_mod + self.modifiers.dmgmod
+            dmg = randi.randint(1,self.weapon.dmg+1) + self.weapon.dmg_mod + self.modifiers.dmgmod
             if dmg <= 0 : dmg = 1
         else:
             raise ValueError
