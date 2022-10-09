@@ -97,18 +97,6 @@ class Simulation():
             return min
         else:
             return value
-        
-    def gauss(self, A, x):
-        a = self.num_runs
-        mu = A[0]
-        sigma = A[1]
-        return np.exp(-(x-mu)**2/(2.0*sigma**2))/np.sqrt(2.0*np.pi*sigma**2)*a
-    
-    @staticmethod
-    def gauss_norm(A, x):
-        mu = A[0]
-        sigma = A[1]
-        return np.exp(-(x-mu)**2/(2*sigma**2))/(np.sqrt(2*np.pi)*sigma)
     
     def __num_shots(self,randi)->int:
         if(self.weapon.shot_type=='flat'):
@@ -260,7 +248,7 @@ class Simulation():
         return results
     
     
-    def __bin_size(self)->float:
+    def bin_size(self)->float:
         '''
             This method calculates bin size for data analysis and visualization
             depending on the parameters of the simulation.
@@ -288,34 +276,10 @@ class Simulation():
         else:
             return 1.
         
-    def visualize_data(self, data, normalized:bool=False, labels:bool=False, title:bool=False)->plt.Figure:
-        max_dmg = int(np.max(data)+1)
-        bins = np.arange(-0.5*self.__bin_size(), max_dmg, self.__bin_size())
-        
-        if(self.target.unit_type=='infantry'):
-            xlabel = f'Number of models slain'
-        else:
-            xlabel = f'Damage infliceted to vehicle'
-        if not normalized and labels:
-            ylabel = 'Number of events'
-        elif labels:
-            ylabel = 'Relative probability'
-            
-        fig = plt.figure(figsize=(5,3.5))
-        ax1 = fig.add_subplot(111)    
-        ax1.hist(data, bins=bins, density=normalized, label='simulated damage')
-        if labels:
-            ax1.set_ylabel(ylabel)
-            ax1.set_xlabel(xlabel)
-        if title:
-            ax1.set_title(f'{self.attacker.name} attacking {self.target.name} with {self.weapon.name}')
-        ax1.legend()
-        fig.set_tight_layout(True)
-        return fig
     
     def analyze_data(self, data, normalized:bool = False):
         max_dmg = int(np.max(data)+1)
-        bins = np.arange(-0.5*self.__bin_size(), max_dmg, self.__bin_size())
+        bins = np.arange(-0.5*self.bin_size(), max_dmg, self.bin_size())
             
         hist, bins = np.histogram(data, bins=bins, density=normalized)
         dmg_points = [bins[i]-(bins[i]-bins[i-1])/2.0 for i in range(1,len(bins))]

@@ -1,9 +1,10 @@
+from multiprocessing.sharedctypes import Value
 import PySimpleGUI as sg
 import src.layouts
 import src.unit_classes as unit_classes
 from src.simulation import Simulation
+from src.simulation_helpers import analyze_data_simple, visualize_data
 import numpy as np
-from matplotlib.ticker import NullFormatter  # useful for `logit` scale
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib
 matplotlib.use('TkAgg')
@@ -124,10 +125,19 @@ def create_weapon(values) -> unit_classes.Weapon :
         
     return unit_classes.Weapon(name, num_shots, strength, ap, dmg, shottype, shotmod, dmgtype, dmgmod)
 
-def create_sim(values):
-    modifiers = (int(values['-HITMOD-']), int(values['-WOUNDMOD-']), int(values['-DMGMOD-']))
+def create_modifiers(values)->unit_classes.Modifiers:
     try:
-        simulation = Simulation(create_attacker(values), create_target(values), create_weapon(values), modifiers=modifiers)
+        hitmod = int(values['-HITMOD-'])
+        woundmod = int(values['-WOUNDMOD-'])
+        dmgmod = int(values['-DMGMOD-'])
+    except ValueError:
+        print('Wrong datatype in Modifiers')
+        return None
+    return unit_classes.Modifiers(hitmod, woundmod, dmgmod)   
+
+def create_sim(values):
+    try:
+        simulation = Simulation(create_attacker(values), create_target(values), create_weapon(values), modifiers=create_modifiers(values))
     except TypeError:
         print('Simulation could not be created.')
         simulation = None
@@ -139,14 +149,17 @@ def draw_figure(canvas, figure):
     figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
     return figure_canvas_agg
 
-def update_figure(cur_fig, canvas, figure):
-    cur_fig.get_tk_widget().forget()
-    return draw_figure(canvas, figure)
 
 if __name__ == '__main__':
     #create main window
     window = sg.Window(title='WH40k Damage Sim', layout=src.layouts.layout_mainwindow,finalize=True, margins=(50,50), resizable=True)
-    current_figure = draw_figure(window['-CANVAS-'].TKCanvas, plt.Figure(figsize=(5,3.5)))
+    fig = plt.figure(figsize=(5,3))
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('Damage inflicted')
+    ax.set_ylabel('Relative probability')
+    
+    fig_agg = draw_figure(window['-CANVAS-'].TKCanvas, fig)
+    fig.set_tight_layout(True)
     #main event loop
     while True:
         event, values = window.read()
@@ -162,8 +175,9 @@ if __name__ == '__main__':
                 print('No Simulation created.')
         elif event == '-RESULTSSHOW-':
             try:
-                print(simulation.output_results(results))
-                current_figure = update_figure(current_figure, window['-CANVAS-'].TKCanvas, simulation.visualize_data(results,normalized=True, labels=True))
+                ax.cla()
+                visualize_data(simulation, ax, results, normalized=False)
+                fig_agg.draw()
                 
             except NameError:
                 print('No results generated so far.')     
