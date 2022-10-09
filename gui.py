@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 import src.layouts
-import unit_classes
-from simulation import Simulation
+import src.unit_classes as unit_classes
+from src.simulation import Simulation
 import numpy as np
 from matplotlib.ticker import NullFormatter  # useful for `logit` scale
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg

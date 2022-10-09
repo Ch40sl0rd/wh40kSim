@@ -1,0 +1,28 @@
+attacker:
+  name: Intercessor
+  no_models: 3
+  ppm: 40
+  unit_type: Infantry
+  ws: 3
+modifiers:
+  dmgmod: 0
+  hitmod: 0
+  woundmod: 0
+num_runs: 10000
+target:
+  armor: 3
+  hp: 10
+  invun_save: 0
+  name: Rhino
+  toughness: 7
+  unit_type: vehicle
+weapon:
+  ap: -4
+  dmg: 1
+  dmg_mod: 0
+  dmg_type: flat
+  name: Plasma Blaster
+  num_shots: 3
+  shot_mod: null
+  shot_type: random
+  strength: 7

@@ -1,4 +1,4 @@
-from simulation import Simulation
+from src.simulation import Simulation
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt

@@ -1,28 +1,36 @@
 import random
 
 from pandas.core.indexes.base import InvalidIndexError
-import unit_classes
+import src.unit_classes as unit_classes
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.odr as odr
 from dataclasses import dataclass
+import yaml
+from dataclasses import dataclass, fields, asdict
 
+@dataclass
 class Simulation():
-        
+    attacker : unit_classes.Attacker
+    target : unit_classes.Target
+    weapon : unit_classes.Weapon
+    modifiers : unit_classes.Modifiers = None
+    num_runs : int = 10000
+    
     def __init__(self, attacker, target, weapon, modifiers = None, num_runs:int = 10000):
-        if (isinstance(attacker, unit_classes.Attacker)==False):
+        if not isinstance(attacker, unit_classes.Attacker):
             raise TypeError('selected attacker is not of type attacker')
-        if(isinstance(target, unit_classes.Target)==False):
+        if not isinstance(target, unit_classes.Target):
             raise TypeError('selected target is not of type target')
-        if(isinstance(weapon, unit_classes.Weapon)==False):
+        if not isinstance(weapon, unit_classes.Weapon):
             raise TypeError('selected weapon is not of type weapon')
+        if not isinstance(modifiers, unit_classes.Modifiers):
+            raise TypeError('selected modifier is not of type modifier')
         if modifiers == None:
             self.modifiers = unit_classes.Modifiers(0,0,0)
-        elif len(modifiers)==3:
-            self.modifiers = unit_classes.Modifiers(*modifiers)
         else:
-            raise TypeError('Not supported type of modifier selected')
+            self.modifiers = modifiers
         self.attacker = attacker
         self.target = target
         self.weapon = weapon
@@ -32,7 +40,6 @@ class Simulation():
         
     def __repr__(self):
         return f'Simulation(attacker={self.attacker.name}, target={self.target.name}, weapon={self.weapon.name}, modifiers={self.modifiers})'
-     
     
     @classmethod
     def from_dataframes(cls, at_frame, tg_frame, wp_frame, n:int = 10000, modifiers = (0,0,0) ):
@@ -54,6 +61,26 @@ class Simulation():
         target = unit_classes.Target(*pd.read_csv(tg_file, skipinitialspace=True).iloc[0].fillna(value=default_target))
         weapon = unit_classes.Weapon(*pd.read_csv(wp_file, skipinitialspace=True).iloc[0].fillna(value=default_weapon))
         return cls(attacker, target, weapon,modifiers, n)
+    
+    @classmethod
+    def from_yaml(cls, yaml_file: str):  
+        with open(yaml_file, "r") as f:
+            #load data from yaml file
+            data = yaml.load(f, Loader=yaml.SafeLoader)
+            #get available fields from Simulation class
+            class_fields = {f.name for f in fields(cls)}
+            #filter only available fields from class and convert all keys to lowercase
+            data = {k.lower(): v for k, v in data.items() if k.lower() in class_fields}
+            return cls( unit_classes.Attacker.from_dict(data['attacker']),
+                        unit_classes.Target.from_dict(data['target']),
+                        unit_classes.Weapon.from_dict(data['weapon']),
+                        unit_classes.Modifiers.from_dict(data['modifiers']),
+                        data['num_runs'])
+            
+    def save_to_yaml(self, filename):
+        with open(filename, "w") as f:
+            yaml.dump(asdict(self), f)
+        
         
 
     @staticmethod
