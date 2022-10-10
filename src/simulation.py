@@ -1,28 +1,36 @@
 import random
 
 from pandas.core.indexes.base import InvalidIndexError
-import unit_classes
+import src.unit_classes as unit_classes
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import scipy.odr as odr
 from dataclasses import dataclass
+import yaml
+from dataclasses import dataclass, fields, asdict
 
+@dataclass
 class Simulation():
-        
-    def __init__(self, attacker: unit_classes.Attacker, target:unit_classes.Target, weapon:unit_classes.Weapon, modifiers:unit_classes.Modifiers = None, num_runs:int = 10000):
-        if (isinstance(attacker, unit_classes.Attacker)==False):
+    attacker : unit_classes.Attacker
+    target : unit_classes.Target
+    weapon : unit_classes.Weapon
+    modifiers : unit_classes.Modifiers = None
+    num_runs : int = 10000
+    
+    def __init__(self, attacker, target, weapon, modifiers = None, num_runs:int = 10000):
+        if not isinstance(attacker, unit_classes.Attacker):
             raise TypeError('selected attacker is not of type attacker')
-        if(isinstance(target, unit_classes.Target)==False):
+        if not isinstance(target, unit_classes.Target):
             raise TypeError('selected target is not of type target')
-        if(isinstance(weapon, unit_classes.Weapon)==False):
+        if not isinstance(weapon, unit_classes.Weapon):
             raise TypeError('selected weapon is not of type weapon')
+        if not isinstance(modifiers, unit_classes.Modifiers):
+            raise TypeError('selected modifier is not of type modifier')
         if modifiers == None:
             self.modifiers = unit_classes.Modifiers(0,0,0)
-        elif len(modifiers)==3:
-            self.modifiers = unit_classes.Modifiers(*modifiers)
         else:
-            raise TypeError('Not supported type of modifier selected')
+            self.modifiers = modifiers
         self.attacker = attacker
         self.target = target
         self.weapon = weapon
@@ -32,7 +40,6 @@ class Simulation():
         
     def __repr__(self):
         return f'Simulation(attacker={self.attacker.name}, target={self.target.name}, weapon={self.weapon.name}, modifiers={self.modifiers})'
-     
     
     @classmethod
     def from_dataframes(cls, at_frame, tg_frame, wp_frame, n:int = 10000, modifiers = (0,0,0) ):
@@ -54,6 +61,26 @@ class Simulation():
         target = unit_classes.Target(*pd.read_csv(tg_file, skipinitialspace=True).iloc[0].fillna(value=default_target))
         weapon = unit_classes.Weapon(*pd.read_csv(wp_file, skipinitialspace=True).iloc[0].fillna(value=default_weapon))
         return cls(attacker, target, weapon,modifiers, n)
+    
+    @classmethod
+    def from_yaml(cls, yaml_file: str):  
+        with open(yaml_file, "r") as f:
+            #load data from yaml file
+            data = yaml.load(f, Loader=yaml.SafeLoader)
+            #get available fields from Simulation class
+            class_fields = {f.name for f in fields(cls)}
+            #filter only available fields from class and convert all keys to lowercase
+            data = {k.lower(): v for k, v in data.items() if k.lower() in class_fields}
+            return cls( unit_classes.Attacker.from_dict(data['attacker']),
+                        unit_classes.Target.from_dict(data['target']),
+                        unit_classes.Weapon.from_dict(data['weapon']),
+                        unit_classes.Modifiers.from_dict(data['modifiers']),
+                        data['num_runs'])
+            
+    def save_to_yaml(self, filename):
+        with open(filename, "w") as f:
+            yaml.dump(asdict(self), f)
+        
         
 
     @staticmethod
@@ -70,30 +97,16 @@ class Simulation():
             return min
         else:
             return value
-
-        
-    def gauss(self, A, x):
-        a = self.num_runs
-        mu = A[0]
-        sigma = A[1]
-        return np.exp(-(x-mu)**2/(2.0*sigma**2))/np.sqrt(2.0*np.pi*sigma**2)*a
-    
-    @staticmethod
-    def gauss_norm(A, x):
-        mu = A[0]
-        sigma = A[1]
-        return np.exp(-(x-mu)**2/(2*sigma**2))/(np.sqrt(2*np.pi)*sigma)
-    
     
     def __num_shots(self,randi)->int:
         if(self.weapon.shot_type=='flat'):
             num_shots = self.weapon.num_shots + self.weapon.shot_mod
         else:
-            num_shots = randi.randint(1,self.weapon.num_shots) + self.weapon.shot_mod
+            num_shots = randi.randint(1,self.weapon.num_shots+1) + self.weapon.shot_mod
         return num_shots
     
     def __hitroll(self, randi)->bool:
-        hit_roll = randi.randint(1,6)
+        hit_roll = randi.randint(1,7)
         if(hit_roll == 1):
             return False
         hit_roll = self.__restrict_value(hit_roll + self.modifiers.hitmod, 1, 6)
@@ -103,7 +116,7 @@ class Simulation():
             return True
 
     def __woundroll(self, randi)->bool:
-        wound_roll = randi.randint(1,6)
+        wound_roll = randi.randint(1,7)
         if(wound_roll==1):
             return False
         wound_roll = self.__restrict_value(wound_roll + self.modifiers.woundmod, 1, 6)
@@ -121,7 +134,7 @@ class Simulation():
     def __armorsave(self, randi)->bool:
         #check if armor can save the attack or invun save exists
         if(self.target.armor - self.weapon.ap < 7 or self.target.invun_save!=0):
-            save_roll = randi.randint(1,6)
+            save_roll = randi.randint(1,7)
             if(self.target.armor - self.weapon.ap > self.target.invun_save and self.target.invun_save ):
                 save = self.target.invun_save
             else:
@@ -138,7 +151,7 @@ class Simulation():
             dmg = self.weapon.dmg + self.weapon.dmg_mod + self.modifiers.dmgmod
             if dmg <= 0 : dmg = 1
         elif(self.weapon.dmg_type == 'random' or self.weapon.dmg_type == 'mixed'):
-            dmg = randi.randint(1,self.weapon.dmg) + self.weapon.dmg_mod + self.modifiers.dmgmod
+            dmg = randi.randint(1,self.weapon.dmg+1) + self.weapon.dmg_mod + self.modifiers.dmgmod
             if dmg <= 0 : dmg = 1
         else:
             raise ValueError
@@ -279,7 +292,7 @@ class Simulation():
         return results
     
     
-    def __bin_size(self)->float:
+    def bin_size(self)->float:
         '''
             This method calculates bin size for data analysis and visualization
             depending on the parameters of the simulation.
@@ -307,34 +320,10 @@ class Simulation():
         else:
             return 1.
         
-    def visualize_data(self, data, normalized:bool=False, labels:bool=False, title:bool=False)->plt.Figure:
-        max_dmg = int(np.max(data)+1)
-        bins = np.arange(-0.5*self.__bin_size(), max_dmg, self.__bin_size())
-        
-        if(self.target.unit_type=='infantry'):
-            xlabel = f'Number of models slain'
-        else:
-            xlabel = f'Damage infliceted to vehicle'
-        if not normalized and labels:
-            ylabel = 'Number of events'
-        elif labels:
-            ylabel = 'Relative probability'
-            
-        fig = plt.figure(figsize=(5,3.5))
-        ax1 = fig.add_subplot(111)    
-        ax1.hist(data, bins=bins, density=normalized, label='simulated damage')
-        if labels:
-            ax1.set_ylabel(ylabel)
-            ax1.set_xlabel(xlabel)
-        if title:
-            ax1.set_title(f'{self.attacker.name} attacking {self.target.name} with {self.weapon.name}')
-        ax1.legend()
-        fig.set_tight_layout(True)
-        return fig
     
     def analyze_data(self, data, normalized:bool = False):
         max_dmg = int(np.max(data)+1)
-        bins = np.arange(-0.5*self.__bin_size(), max_dmg, self.__bin_size())
+        bins = np.arange(-0.5*self.bin_size(), max_dmg, self.bin_size())
             
         hist, bins = np.histogram(data, bins=bins, density=normalized)
         dmg_points = [bins[i]-(bins[i]-bins[i-1])/2.0 for i in range(1,len(bins))]
@@ -369,9 +358,9 @@ class Simulation():
         ax.plot(x,y, ':', label='fit curve')
         ax.legend()
         
-    def output_results(self, data):
+    def output_results(self, data, file_name:str = None):
         results = self.analyze_data(data)
-        return {'attacker':self.attacker, 
+        output = {'attacker':self.attacker, 
                 'target':self.target,
                 'weapon':self.weapon,
                 'modifiers':self.modifiers,
@@ -379,6 +368,10 @@ class Simulation():
                 'delta_avg_dmg':results[1][0],
                 'sigma':results[0][1],
                 'delta_sigma':results[1][1]}
+        if file_name == None:
+            return output
+        file = open(file_name, 'a')
+            
     
 def main()->None:
    marine = unit_classes.Attacker('marine', 3, 20, no_models=5)
