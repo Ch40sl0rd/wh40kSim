@@ -34,36 +34,13 @@ class Simulation():
         self.attacker = attacker
         self.target = target
         self.weapon = weapon
-        self.num_runs = num_runs
-        self.sim_damage = []
-        
+        self.num_runs = num_runs        
         
     def __repr__(self):
         return f'Simulation(attacker={self.attacker.name}, target={self.target.name}, weapon={self.weapon.name}, modifiers={self.modifiers})'
     
     @classmethod
-    def from_dataframes(cls, at_frame, tg_frame, wp_frame, n:int = 10000, modifiers = (0,0,0) ):
-        default_attacker = {'unit_type':'infantry', 'no_models':1}
-        default_target = {'unit_type':'infantry', 'invun_save':0}
-        default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
-        attacker = unit_classes.Attacker(*at_frame.fillna(value=default_attacker))
-        target = unit_classes.Target(*tg_frame.fillna(value=default_target))
-        weapon = unit_classes.Weapon(*wp_frame.fillna(value=default_weapon))
-        return cls(attacker, target, weapon,modifiers, n)
-    
-    @classmethod
-    def from_csv_datafiles(cls, at_file : str, tg_file : str, wp_file : str, n:int = 10000, modifiers = (0,0,0)):
-        default_attacker = {'unit_type':'infantry', 'no_models':1}
-        default_target = {'unit_type':'infantry','invun_save':0}
-        default_weapon = {'shot_type':'flat', 'shot_mod':0, 'dmg_type':'flat', 'dmg_mod':0}
-        
-        attacker = unit_classes.Attacker(*pd.read_csv(at_file, skipinitialspace=True).iloc[0].fillna(value=default_attacker))
-        target = unit_classes.Target(*pd.read_csv(tg_file, skipinitialspace=True).iloc[0].fillna(value=default_target))
-        weapon = unit_classes.Weapon(*pd.read_csv(wp_file, skipinitialspace=True).iloc[0].fillna(value=default_weapon))
-        return cls(attacker, target, weapon,modifiers, n)
-    
-    @classmethod
-    def from_yaml(cls, yaml_file: str):  
+    def from_yaml(cls, yaml_file: str): 
         with open(yaml_file, "r") as f:
             #load data from yaml file
             data = yaml.load(f, Loader=yaml.SafeLoader)
@@ -246,105 +223,10 @@ class Simulation():
         for i in range(self.num_runs):
             results[i] = func()
         return results
-    
-    
-    def bin_size(self)->float:
-        '''
-            This method calculates bin size for data analysis and visualization
-            depending on the parameters of the simulation.
-        '''
-        #differentiate between target unit types
-        if(self.target.unit_type=='vehicle'):
-            #differentiate between random and flat damage weapons
-            if(self.weapon.dmg_type=='random' or self.weapon.dmg_type=='mixed'):
-                return float(1 + self.weapon.dmg_mod + self.modifiers.dmgmod)
-            else:
-                return float(self.weapon.dmg + self.weapon.dmg_mod+self.modifiers.dmgmod )
-        elif(self.target.unit_type == 'infantry'):
-            if(self.weapon.dmg_type == 'random' or self.weapon.dmg_type == 'mixed'):
-                min_dmg = 1 + self.weapon.dmg_mod + self.modifiers.dmgmod
-                if min_dmg >= self.target.hp :
-                    return 1.
-                else:
-                    return float(1/self.target.hp)
-            else:
-                min_dmg = self.weapon.dmg + self.weapon.dmg_mod + self.modifiers.dmgmod
-                if min_dmg >= self.target.hp:
-                    return 1.0
-                else:
-                    return float(1/self.target.hp)
-        else:
-            return 1.
         
-    
-    def analyze_data(self, data, normalized:bool = False):
-        max_dmg = int(np.max(data)+1)
-        bins = np.arange(-0.5*self.bin_size(), max_dmg, self.bin_size())
-            
-        hist, bins = np.histogram(data, bins=bins, density=normalized)
-        dmg_points = [bins[i]-(bins[i]-bins[i-1])/2.0 for i in range(1,len(bins))]
-        yerr = np.sqrt(hist)
-        if(self.target.unit_type=='infantry'):
-            xerr = np.ones(len(dmg_points))*1.0/(np.sqrt(12.0)*self.target.hp)
-        else:
-            xerr = np.ones(len(dmg_points))*1.0/np.sqrt(12.0)
-        
-        if normalized:    
-            gaussf = odr.Model(self.gauss_norm)
-            beta = [bins[np.argmax(hist)], 0.5]
-        else:
-            gaussf = odr.Model(self.gauss)
-            beta = [bins[np.argmax(hist)], 0.5]
-
-        yerr = np.array([x if x !=0 else 2.0 for x in yerr])
-        
-        dataODR = odr.RealData(dmg_points, y=hist, sx=xerr, sy=yerr)
-        myodr = odr.ODR(dataODR, gaussf, beta0=beta)
-        output = myodr.run()
-        params, errors = output.beta, output.sd_beta
-        return (params, errors)
-    
-    def visualize_fit(self, params, fig:plt.Figure, normalized:bool=False)->plt.Figure:
-        ax = fig.get_axes()[0]
-        x = np.linspace(0.0, int(ax.get_xlim()[1]+1), 100)
-        if(normalized):
-            y = self.gauss_norm(params, x)
-        else:
-            y = self.gauss(params, x)
-        ax.plot(x,y, ':', label='fit curve')
-        ax.legend()
-        
-    def output_results(self, data, file_name:str = None):
-        results = self.analyze_data(data)
-        output = {'attacker':self.attacker, 
-                'target':self.target,
-                'weapon':self.weapon,
-                'modifiers':self.modifiers,
-                'avg_dmg':results[0][0],
-                'delta_avg_dmg':results[1][0],
-                'sigma':results[0][1],
-                'delta_sigma':results[1][1]}
-        if file_name == None:
-            return output
-        file = open(file_name, 'a')
-            
     
 def main()->None:
-   marine = unit_classes.Attacker('marine', 3, 20, no_models=5)
-   guardsmen = unit_classes.Target('guardsmen', 3, 5, 1)
-   rhino = unit_classes.Target('rhino', 7, 3, 11, unit_type='vehicle')
-   custodes = unit_classes.Target('custodes', 5, 2, 3)
-   bolt_rifle = unit_classes.Weapon('Bolt Rifle', 2, 4, -1, 1)
-   
-   sim = Simulation(marine, custodes, bolt_rifle, [1,1,-1])
-   print(sim)
-   max_dmg = (sim.attacker.no_models*sim.weapon.num_shots)/float(sim.target.hp)
-   array = np.ones(10000)
-   for i in range(10000):
-    array[i] = sim.unit_shooting_infantry()
-   plt.hist(array, 12, range=(0,max_dmg))
-   plt.show()
+   pass
            
-
 if __name__ == '__main__':
     main()
