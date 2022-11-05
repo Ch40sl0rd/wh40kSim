@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 import PySimpleGUI as sg
 import src.layouts
 import src.unit_classes as unit_classes
@@ -159,7 +158,6 @@ if __name__ == '__main__':
     ax.set_ylabel('Relative probability')
     
     fig_agg = draw_figure(window['-CANVAS-'].TKCanvas, fig)
-    fig.set_tight_layout(True)
     #main event loop
     while True:
         event, values = window.read()
@@ -170,14 +168,15 @@ if __name__ == '__main__':
             simulation = create_sim(values)
         elif event =='-RUNSIM-':
             try:
-                results = simulation.simulate_attack_sequence()
+                results = simulation.shooting_combined()
             except NameError:
                 print('No Simulation created.')
         elif event == '-RESULTSSHOW-':
             try:
                 ax.cla()
                 visualize_data(simulation, ax, results, normalized=False)
+                fig.tight_layout()
                 fig_agg.draw()
                 
             except NameError:
-                print('No results generated so far.')     
+                print('No results generated so far.')

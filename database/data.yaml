@@ -9,23 +9,23 @@ Attacker:
 
 #define target statline
 Target:
-  name: Rhino
-  toughness: 7
-  armor: 3
-  hp: 10
-  unit_type: vehicle
-  invun_save: 0
+  name: Custodes
+  toughness: 5
+  armor: 2
+  hp: 3
+  unit_type: infantry
+  invun_save: 4
 
 #define weapon statline
 Weapon:
   name: Plasma Blaster
   num_shots: 3
-  strength: 7
+  strength: 8
   ap: -4
-  dmg: 1
-  shot_type: random
-  shot_mod: 
-  dmg_type: flat
+  dmg: 3
+  shot_type: flat
+  shot_mod: 0
+  dmg_type: random
   dmg_mod: 0
 
 #define modifiers
@@ -35,4 +35,4 @@ Modifiers:
   dmgmod: 0
 
 #define number of simulation runs
-num_runs: 10000
+num_runs: 5
