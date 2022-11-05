@@ -161,7 +161,51 @@ class Simulation():
             print('not supported weapon type used!')
             dmg += -1
         return dmg
-        
+
+    def shooting_combined(self)->float:
+        #calcualte total number of shots
+        if self.weapon.shot_type == 'random':
+            num_shots = np.sum(np.random.randint(1, self.weapon.num_shots+1, size=(self.num_runs,self.attacker.no_models)) + self.weapon.shot_mod, axis = 1)
+        else:
+            num_shots = self.weapon.num_shots + self.weapon.shot_mod
+
+        hitroll = (np.random.randint(1,7, size = (self.num_runs,self.attacker.no_models*(self.weapon.num_shots+self.weapon.shot_mod))) + self.modifiers.hitmod).clip(1,6)
+        woundroll = (np.random.randint(1,7, size = (self.num_runs,self.attacker.no_models*(self.weapon.num_shots+self.weapon.shot_mod))) + self.modifiers.woundmod).clip(1,6)
+        armorroll = (np.random.randint(1,7, size = (self.num_runs,self.attacker.no_models*(self.weapon.num_shots+self.weapon.shot_mod))) + self.weapon.ap).clip(1,6)
+
+        if self.weapon.dmg_type == 'random':
+            damageroll = (np.random.random_integers(1,self.weapon.dmg+1, size = (self.num_runs,self.attacker.no_models*(self.weapon.num_shots+self.weapon.shot_mod))) + self.weapon.dmg_mod + self.modifiers.dmgmod)
+        else:
+            damageroll = np.ones((self.num_runs,self.attacker.no_models*(self.weapon.num_shots+self.weapon.shot_mod)))*(self.weapon.dmg + self.weapon.dmg_mod + self.modifiers.dmgmod)
+
+        for i in range(self.num_runs):
+            hitroll[i,num_shots[i]:] = 0
+            woundroll[i,num_shots[i]:] = 0
+            armorroll[i,num_shots[i]:] = 0
+
+        hits = np.logical_and(hitroll >= self.attacker.ws, hitroll > 1)
+        #calculate dice throw needed to wound target
+        if(self.weapon.strength == self.target.toughness):
+            to_wound = 4
+        elif(2*self.weapon.strength <= self.target.toughness):
+            to_wound = 6
+        elif(self.weapon.strength < self.target.toughness):
+            to_wound = 5
+        elif(self.weapon.strength > self.target.toughness):
+            to_wound = 3
+        else:
+            to_wound = 2
+
+        wounds = woundroll >= to_wound
+
+        if self.target.armor - self.weapon.ap > self.target.invun_save and self.target.invun_save :
+            to_save = self.target.invun_save
+        else:
+            to_save = self.target.armor
+
+        saves = armorroll < to_save
+
+        return np.sum(damageroll*np.logical_and(np.logical_and(hits, wounds), saves), axis=1) 
 
     def unit_shooting_infantry(self)->float:
         '''This method simulates the attack sequence of one unit against
